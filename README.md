@@ -10,7 +10,9 @@ An interactive single-page web page built with **HTML, CSS (Bootstrap 5), and Va
 
 > *Screen Recording Demonstrating all core interactions and features.*
 
-[screen recording](https://github.com/Emoytech/number-guesser/assets/demonstration.webm)
+[**screen recording video link**](./assets/demonstration.mp4)
+<hr>
+<img src="./assets/demonstration.gif" alt="Demo Walkthrough" width="600" />
 
 ---
 
