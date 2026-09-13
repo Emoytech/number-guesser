@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess The Number</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://w3.org viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔢</text></svg>">
+  <!-- Bootstrap 5 CSS -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔢</text></svg>"><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      transition: background-color 0.4s ease, color 0.4s ease;
+    }
+    .shake {
+      animation: shake 0.3s;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+  </style>
+</head>
+<body class="bg-light text-dark min-vh-100 d-flex align-items-center justify-content-center">
+
+  <div class="container text-center" style="max-width: 500px;">
+    <!-- Dark Mode Toggle Button -->
+    <div class="d-flex justify-content-end mb-3">
+      <button id="theme-toggle" class="btn btn-outline-secondary btn-sm">🌙</button>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card shadow-lg p-4 rounded-4" id="game-card">
+      <h1 class="fw-bold mb-3">Guess The Number</h1>
+      <p class="text-muted">Guess the secret number between 1 and 100 in the least number of attempts</p>
+
+      <!-- Interaction 1: Guess Input Form -->
+      <div class="input-group mb-3">
+        <input type="number" id="guess-input" class="form-control form-control-lg text-center" placeholder="Enter your guess..." min="1" max="100">
+        <button id="guess-btn" class="btn btn-primary px-4">Guess!</button>
+      </div>
+
+      <!-- Live Feedback Badge -->
+      <div id="feedback" class="alert alert-secondary d-none fw-bold" role="alert">
+        Make your first guess!
+      </div>
+
+      <!-- Interaction 2: Dramatic Hint / Radar Button -->
+      <button id="hint-btn" class="btn btn-warning w-100 mb-3 fw-semibold">
+        👀 Need Help?
+      </button>
+
+      <hr>
+
+      <!-- Stats Bar & LocalStorage High Score -->
+      <div class="d-flex justify-content-around fw-bold text-secondary">
+        <div>Attempts: <span id="attempts-count" class="text-primary">0</span></div>
+        <div>Best Record: <span id="high-score" class="text-success">--</span></div>
+      </div>
+
+      <!-- Reset Game -->
+      <button id="reset-btn" class="btn btn-outline-danger btn-sm mt-3">Reset Game</button>
+    </div>
+  </div>
+
+  <script>
+    // Audio Context Setup (Web Audio API)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq, type = 'sine') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    // State Variables
+    let secretNumber = Math.floor(Math.random() * 100) + 1;
+    let attempts = 0;
+
+    // DOM Elements
+    const guessInput = document.getElementById('guess-input');
+    const guessBtn = document.getElementById('guess-btn');
+    const feedback = document.getElementById('feedback');
+    const attemptsEl = document.getElementById('attempts-count');
+    const highScoreEl = document.getElementById('high-score');
+    const hintBtn = document.getElementById('hint-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const themeToggle = document.getElementById('theme-toggle');
+    const gameCard = document.getElementById('game-card');
+
+    // Load High Score from LocalStorage
+    const savedHighScore = localStorage.getItem('mind_reader_best');
+    if (savedHighScore) highScoreEl.textContent = `${savedHighScore} tries`;
+
+    // Interaction 1: Submit Guess
+    function makeGuess() {
+      const userGuess = parseInt(guessInput.value);
+      if (isNaN(userGuess) || userGuess < 1 || userGuess > 100) return;
+
+      attempts++;
+      attemptsEl.textContent = attempts;
+      feedback.classList.remove('d-none', 'alert-secondary', 'alert-danger', 'alert-success', 'alert-warning');
+
+      if (userGuess === secretNumber) {
+        playBeep(600);
+        feedback.textContent = `🎯 Spot on! The number was ${secretNumber}!`;
+        feedback.classList.add('alert-success');
+
+        // Check LocalStorage Best
+        const currentBest = localStorage.getItem('mind_reader_best');
+        if (!currentBest || attempts < parseInt(currentBest)) {
+          localStorage.setItem('mind_reader_best', attempts);
+          highScoreEl.textContent = `${attempts} tries`;
+        }
+      } else {
+        playBeep(200, 'sawtooth');
+        // Screen Shake Animation
+        gameCard.classList.add('shake');
+        setTimeout(() => gameCard.classList.remove('shake'), 400);
+
+        if (userGuess < secretNumber) {
+          feedback.textContent = '⬇️ Too LOW! Think higher.';
+          feedback.classList.add('alert-danger');
+        } else {
+          feedback.textContent = '⬆️ Too HIGH! Think lower.';
+          feedback.classList.add('alert-warning');
+        }
+      }
+      guessInput.value = '';
+    }
+
+    // Interaction 2: Hint
+    hintBtn.addEventListener('click', () => {
+      playBeep(400);
+      const isEven = secretNumber % 2 === 0;
+      feedback.classList.remove('d-none', 'alert-secondary');
+      feedback.classList.add('alert-info');
+      feedback.textContent = `🎲 The secret number is ${isEven ? 'EVEN' : 'ODD'}.`;
+    });
+
+    // Interaction 3: Dark Mode Toggle
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('bg-dark');
+      document.body.classList.toggle('text-white');
+      document.body.classList.toggle('bg-light');
+      document.body.classList.toggle('text-dark');
+      
+      gameCard.classList.toggle('bg-dark');
+      gameCard.classList.toggle('text-white');
+      gameCard.classList.toggle('border-secondary');
+    });
+
+    // Event Listeners
+    guessBtn.addEventListener('click', makeGuess);
+    guessInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') makeGuess(); });
+    resetBtn.addEventListener('click', () => {
+      secretNumber = Math.floor(Math.random() * 100) + 1;
+      attempts = 0;
+      attemptsEl.textContent = 0;
+      feedback.classList.add('d-none');
+      guessInput.value = '';
+    });
+  </script>
+</body>
+</html>
